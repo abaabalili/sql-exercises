@@ -1,0 +1,235 @@
+#175.组合两个表
+SELECT p.FirstName , p.LastName , a.City , a.State FROM Person p 
+LEFT JOIN Address a ON p.personid = a.personid;  
+#181.超过经理收入的员工
+SELECT
+     a.NAME AS Employee
+FROM Employee AS a JOIN Employee AS b
+     ON a.ManagerId = b.Id
+     AND a.Salary > b.Salary
+;
+#183.从不订购的客户
+SELECT c.name Customers FROM Customers c LEFT JOIN Orders o ON 
+c.id = o.customerId WHERE o.id IS NULL;
+#196.删除重复的邮箱
+DELETE p1
+FROM Person p1
+JOIN Person p2
+      ON p1.email = p2.email
+     AND p1.id > p2.id;
+#or
+DELETE FROM Person AS p
+WHERE EXISTS (
+    SELECT 1
+    FROM Person AS p2
+    WHERE p2.email = p.email
+      AND p2.id < p.id
+);
+#or
+DELETE FROM Person
+WHERE id NOT IN (
+    SELECT min_id
+    FROM (
+        SELECT MIN(id) OVER (PARTITION BY email) AS min_id
+        FROM Person
+    ) AS t
+);
+#197.上升的温度
+SELECT w1.id
+FROM Weather w1
+JOIN Weather w2
+      ON w2.recordDate = w1.recordDate - INTERVAL 1 DAY
+WHERE w1.temperature > w2.temperature;
+#511.游戏玩法分析
+SELECT player_id,
+       MIN(event_date) AS first_login
+FROM Activity
+GROUP BY player_id;
+#577.员工奖金
+SELECT a.name,b.bonus FROM Employee a LEFT join Bonus b ON a.empId = b.empId
+WHERE b.bonus<1000 OR b.bonus IS NULL; 
+#584 寻找用户推荐人
+SELECT name FROM Customer WHERE
+referee_id !=2 OR
+referee_id IS NULL;
+#586 订单最多的客户
+SELECT customer_number
+FROM Orders
+GROUP BY customer_number
+HAVING COUNT(*) = (
+    SELECT MAX(cnt)
+    FROM (
+        SELECT COUNT(*) AS cnt
+        FROM Orders
+        GROUP BY customer_number
+    ) t
+);
+#595 大的国家
+SELECT name ,area, population FROM World 
+WHERE area >=3000000 OR population >= 25000000;
+#596 超过五名学生的课
+SELECT class FROM Courses GROUP BY class HAVING COUNT(student)>=5;
+#607.销售员
+select name from SalesPerson  where sales_id NOT IN (select o.sales_id from Company c RIGHT join Orders o ON o.com_id = c.com_id WHERE c.name = 'RED') ; --无null值
+#or
+SELECT name
+FROM   SalesPerson sp
+WHERE  NOT EXISTS (
+        SELECT 1
+        FROM   Orders o
+        JOIN   Company c ON c.com_id = o.com_id
+        WHERE  c.name = 'RED'
+        AND    o.sales_id = sp.sales_id   -- 关联到外层
+);
+#or
+SELECT DISTINCT sp.name
+FROM   SalesPerson sp
+LEFT JOIN (
+        SELECT o.sales_id
+        FROM   Orders o
+        JOIN   Company c ON c.com_id = o.com_id
+        WHERE  c.name = 'RED'
+) AS t ON t.sales_id = sp.sales_id
+WHERE  t.sales_id IS NULL;
+#610 判断三角形
+SELECT x, y, z,
+       CASE
+           WHEN x + y > z AND x + z > y AND y + z > x THEN 'Yes'
+           ELSE 'No'
+       END AS triangle
+FROM Triangle;
+#619 只出现一次的最大数字
+SELECT
+    MAX(num) AS num
+FROM
+    (SELECT
+        num
+    FROM
+        number
+    GROUP BY num
+    HAVING COUNT(*) = 1) AS t
+;
+#620 有趣的电影
+SELECT * FROM cinema WHERE description !='boring' AND mod(id,2) = 1
+#627 变更性别
+UPDATE salary
+SET
+    sex = CASE sex
+        WHEN 'm' THEN 'f'
+        ELSE 'm'
+    END;
+#1050 合作过至少三次的演员和导演
+select actor_id ,director_id 
+from ActorDirector
+group by actor_id,director_id 
+having count(*)>=3;
+#1068产品销售分析I
+SELECT p.product_name,
+       s.year,
+       s.price
+FROM   Sales AS s
+JOIN   Product AS p
+       ON p.product_id = s.product_id;
+#1075 项目员工I
+SELECT p.project_id,
+       round(avg(experience_years),2) as average_years
+FROM Project p JOIN Employee e 
+ON p.employee_id= e.employee_id
+GROUP BY project_id;
+#1084 销售分析3
+SELECT p.product_id,
+       p.product_name
+FROM   Product p
+JOIN   Sales s
+       ON s.product_id = p.product_id
+GROUP  BY p.product_id, p.product_name
+HAVING MIN(s.sale_date) >= '2019-01-01'
+   AND MAX(s.sale_date) <= '2019-03-31';
+#1141 查询近30天活跃用户数
+SELECT activity_date AS day,
+       COUNT(DISTINCT user_id) AS active_users
+FROM   Activity
+WHERE  activity_date BETWEEN DATE '2019-07-27' - INTERVAL '29' DAY   -- 2019-06-28
+                         AND DATE '2019-07-27'
+GROUP  BY activity_date;
+#1148 文章浏览1
+select distinct viewer_id as id from Views where author_id = viewer_id order by id;
+#1179重新格式化部门表
+SELECT id,
+       MAX(CASE WHEN month = 'Jan' THEN revenue END) AS Jan_Revenue,
+       MAX(CASE WHEN month = 'Feb' THEN revenue END) AS Feb_Revenue,
+       MAX(CASE WHEN month = 'Mar' THEN revenue END) AS Mar_Revenue,
+       MAX(CASE WHEN month = 'Apr' THEN revenue END) AS Apr_Revenue,
+       MAX(CASE WHEN month = 'May' THEN revenue END) AS May_Revenue,
+       MAX(CASE WHEN month = 'Jun' THEN revenue END) AS Jun_Revenue,
+       MAX(CASE WHEN month = 'Jul' THEN revenue END) AS Jul_Revenue,
+       MAX(CASE WHEN month = 'Aug' THEN revenue END) AS Aug_Revenue,
+       MAX(CASE WHEN month = 'Sep' THEN revenue END) AS Sep_Revenue,
+       MAX(CASE WHEN month = 'Oct' THEN revenue END) AS Oct_Revenue,
+       MAX(CASE WHEN month = 'Nov' THEN revenue END) AS Nov_Revenue,
+       MAX(CASE WHEN month = 'Dec' THEN revenue END) AS Dec_Revenue
+FROM   Department
+GROUP  BY id;
+#1211 查询结果的质量和占比
+SELECT 
+    query_name, 
+    ROUND(AVG(rating/position), 2) quality,
+    ROUND(SUM(IF(rating < 3, 1, 0)) * 100 / COUNT(*), 2) poor_query_percentage
+FROM Queries
+Where query_name IS NOT NULL
+GROUP BY query_name
+#1251平均售价
+SELECT
+    product_id,
+    IFNULL(Round(SUM(sales) / SUM(units), 2), 0) AS average_price
+FROM (
+    SELECT
+        Prices.product_id AS product_id,
+        Prices.price * UnitsSold.units AS sales,
+        UnitsSold.units AS units
+    FROM Prices 
+    LEFT JOIN UnitsSold ON Prices.product_id = UnitsSold.product_id
+    AND (UnitsSold.purchase_date BETWEEN Prices.start_date AND Prices.end_date)
+) T
+GROUP BY product_id
+#1280 学生们参加各科测试的次数
+SELECT s.student_id,
+       s.student_name,
+       sub.subject_name,
+       COALESCE(e.cnt, 0) AS attended_exams
+FROM   Students s
+JOIN   Subjects sub          -- 1. 笛卡尔积：学生×科目
+LEFT JOIN (
+        SELECT student_id,
+               subject_name,
+               COUNT(*) AS cnt
+        FROM   Examinations
+        GROUP  BY student_id, subject_name
+) e                                  -- 2. 真实考试次数
+       ON e.student_id = s.student_id
+      AND e.subject_name = sub.subject_name
+ORDER  BY s.student_id, sub.subject_name;
+#1327列出指定时间段内所有的下单产品
+select product_name,sum(unit) unit from
+Products p join Orders o on p.product_id= o.product_id
+where order_date between '2020-02-01' and '2020-02-29'
+group by product_name
+having sum(unit)>=100 ;
+#1372
+#1378使用唯一的标识码替换员工id
+select unique_id , name from Employees e left join EmployeeUNI e1
+on e.id=e1.id
+#1407排名靠前的旅行者
+select name , ifnull(sum(distance),0) travelled_distance from 
+Users u left join Rides r
+on u.id = r.user_id
+group by user_id 
+order by travelled_distance desc , name ;
+#1484 按日期分组销售产品
+select sell_date,ifnull(count(distinct product),0) num_sold,GROUP_CONCAT(DISTINCT product ORDER BY product SEPARATOR ',')products  from Activities 
+group by sell_date
+order by sell_date;
+#1517查找拥有有效邮箱的用户
+select * from Users where REGEXP_LIKE
+(mail, '^[a-zA-Z][a-zA-Z0-9._-]*@leetcode\\.com$', 'c')；
+
